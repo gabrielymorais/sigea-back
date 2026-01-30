@@ -1,0 +1,85 @@
+
+# Django / Python
+
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtualenv
+venv/
+.venv/
+env/
+ENV/
+
+# Test / coverage / tooling
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+.cache/
+*.log
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Secrets / Environment
+
+.env
+.env.*
+*.pem
+*.key
+*.crt
+secrets/
+.envrc
+
+
+# Django specifics
+
+# SQLite (se alguém rodar local com sqlite)
+*.sqlite3
+db.sqlite3
+
+# Uploads (geralmente NÃO versionar)
+media/
+
+# Static coletado pelo collectstatic (NÃO versionar)
+staticfiles/
+
+# Se você usa um arquivo de settings local (não comitar)
+local_settings.py
+
+# Cache
+*.mo
+*.pot
+
+# Django migrations: NÃO ignore migrations (versionar!)
+**/migrations/__pycache__/
+
+
+# Docker
+
+docker-compose.override.yml
+*.tar
+
+
+# IDE / OS
+
+.vscode/
+.idea/
+*.iml
+.DS_Store
+Thumbs.db
+
+
+# Logs e dumps
+
+*.pid
+*.seed
+*.dump
+*.sql
