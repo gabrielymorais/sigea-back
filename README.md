@@ -39,9 +39,9 @@ docker compose up -d --build
 ```
 **Derrubando container**
 ```bash
-docker compose up -d --build
+docker compose down
 ```
-**Derrubar e remover volumes (apaga o dados do banco) **
+**Derrubar e remover volumes (apaga os dados do banco) **
 ```bash
 docker compose donw -v
 ```
@@ -64,6 +64,7 @@ docker compose exec backend python manage.py makemigrations
 ```bash
 docker compose exec backend python manage.py migrate
 ```
+
 
 
 
