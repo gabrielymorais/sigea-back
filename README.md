@@ -52,19 +52,22 @@ docker compose donw -v
 - Após atualizar o código (git pull) com novas migrations
 - Após alterações nos arquivos models.py
 
-- Executa todas as migrations pendentes no banco(este comando deve ser executado sempre após subir o container pela primeira vez).
+- Criar migraçoes
 ```bash
-docker compose exec backend python manage.py migrate
+docker compose exec web python manage.py makemigrations
 ```
-- Se você modificou algum models.py, gere novas migrations:
+- Aplicar migraçoes no banco
 ```bash
-docker compose exec backend python manage.py makemigrations
-```
-- Em seguida, aplique no banco:
-```bash
-docker compose exec backend python manage.py migrate
+docker compose exec web python manage.py migrate
 ```
 
+- Criando um novo app no Django:
+```bash
+docker compose exec web python manage.py startapp nomeApp apps/nomeApp
+```
 
-
+- Criando um usuario:
+```bash
+docker compose exec web python manage.py createsuperuser
+```
 
