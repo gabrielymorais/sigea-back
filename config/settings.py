@@ -33,6 +33,7 @@ INSTALLED_APPS = [
     "apps.core",
     "apps.documents",
     "apps.schools",
+    "apps.atas",
 ]
 
 

@@ -8,6 +8,11 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
   build-essential \
   libpq-dev \
+  libreoffice \
+  libreoffice-writer \
+  libreoffice-impress \
+  libreoffice-calc \
+  fonts-dejavu-core \
   && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .

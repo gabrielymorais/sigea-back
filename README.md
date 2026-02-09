@@ -65,7 +65,11 @@ docker compose exec web python manage.py migrate
 ```bash
 docker compose exec web python manage.py startapp nomeApp apps/nomeApp
 ```
-
+- Depois de criar um novo app:
+```bash
+docker compose exec web python manage.py makemigrations nomeApp
+docker compose exec web python manage.py migrate
+```
 - Criando um usuario:
 ```bash
 docker compose exec web python manage.py createsuperuser
