@@ -34,6 +34,10 @@ INSTALLED_APPS = [
     "apps.documents",
     "apps.schools",
     "apps.atas",
+    "apps.relatorios",
+    "apps.pareceres",
+    "apps.oficios",
+    "apps.rea"
 ]
 
 
