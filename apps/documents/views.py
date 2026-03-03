@@ -1,6 +1,12 @@
-from rest_framework import viewsets
-from rest_framework.permissions import IsAuthenticated
+import os
+import mimetypes
+
+from django.http import FileResponse
+from rest_framework import status, viewsets
+from rest_framework.decorators import action
 from rest_framework.filters import SearchFilter, OrderingFilter
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 
 from drf_spectacular.utils import extend_schema, extend_schema_view
 
@@ -21,7 +27,7 @@ class DocumentViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     filter_backends = [SearchFilter, OrderingFilter]
-    search_fields = ["name", "doc_type"]  
+    search_fields = ["name", "doc_type"]
     ordering_fields = ["updated_at", "created_at", "name", "doc_type"]
     ordering = ["-updated_at"]
 
@@ -30,3 +36,49 @@ class DocumentViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
+
+    @action(detail=True, methods=["get"], url_path="download")
+    def download(self, request, pk=None):
+        doc = self.get_object()
+
+        if not doc.file:
+            return Response(
+                {"detail": "Documento sem arquivo associado."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        doc.file.open("rb")
+
+        filename = os.path.basename(doc.file.name) or f"documento-{doc.pk}"
+        content_type, _ = mimetypes.guess_type(filename)
+        content_type = content_type or "application/octet-stream"
+
+        return FileResponse(
+            doc.file,
+            as_attachment=True,
+            filename=filename,
+            content_type=content_type,
+        )
+
+    @action(detail=True, methods=["get"], url_path="preview")
+    def preview(self, request, pk=None):
+        doc = self.get_object()
+
+        if not doc.file:
+            return Response(
+                {"detail": "Documento sem arquivo associado."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        doc.file.open("rb")
+
+        filename = os.path.basename(doc.file.name) or f"documento-{doc.pk}"
+        content_type, _ = mimetypes.guess_type(filename)
+        content_type = content_type or "application/octet-stream"
+
+        return FileResponse(
+            doc.file,
+            as_attachment=False,
+            filename=filename,
+            content_type=content_type,
+        )

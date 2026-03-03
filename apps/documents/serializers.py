@@ -1,4 +1,6 @@
 from rest_framework import serializers
+from rest_framework.reverse import reverse
+
 from .models import Document
 
 
@@ -25,4 +27,4 @@ class DocumentSerializer(serializers.ModelSerializer):
         if not obj.file:
             return None
 
-        return request.build_absolute_uri(obj.file.url) if request else obj.file.url
+        return reverse("documents-download", kwargs={"pk": obj.pk}, request=request)
