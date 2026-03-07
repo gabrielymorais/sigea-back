@@ -5,8 +5,6 @@ User = get_user_model()
 
 
 class UserSerializer(serializers.ModelSerializer):
-    """Resposta (list/retrieve/me)."""
-
     class Meta:
         model = User
         fields = [
@@ -25,7 +23,6 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class UserCreateSerializer(serializers.ModelSerializer):
-    """Criação (POST /usuarios/ e POST /auth/register/)."""
     password = serializers.CharField(write_only=True, min_length=6)
 
     class Meta:
@@ -76,8 +73,13 @@ class UserCreateSerializer(serializers.ModelSerializer):
 
 
 class UserUpdateSerializer(serializers.ModelSerializer):
-    """Atualização (PATCH/PUT /usuarios/{id}/ e PATCH /usuarios/me/)."""
-    password = serializers.CharField(write_only=True, required=False, min_length=6)
+    """
+    Atualização segura.
+    - Para trocar senha: mandar current_password + new_password
+    - Admin pode resetar senha de outro usuário mandando só new_password (opcional)
+    """
+    current_password = serializers.CharField(write_only=True, required=False)
+    new_password = serializers.CharField(write_only=True, required=False, min_length=6)
 
     class Meta:
         model = User
@@ -90,7 +92,8 @@ class UserUpdateSerializer(serializers.ModelSerializer):
             "tipo_profissional",
             "escola_lotacao",
             "portaria",
-            "password",
+            "current_password",
+            "new_password",
         ]
 
     def validate_username(self, value):
@@ -111,14 +114,38 @@ class UserUpdateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("CPF já está em uso.")
         return value
 
+    def validate(self, attrs):
+        request = self.context.get("request")
+        current_password = attrs.get("current_password")
+        new_password = attrs.get("new_password")
+
+        if not new_password:
+            return attrs
+
+        # Se admin está resetando senha de outro usuário, pode sem senha atual 
+        if request and request.user and request.user.is_staff and self.instance.pk != request.user.pk:
+            return attrs
+
+        # Self: exige senha atual
+        if not current_password:
+            raise serializers.ValidationError(
+                {"current_password": "Informe sua senha atual para alterar a senha."}
+            )
+
+        if not self.instance.check_password(current_password):
+            raise serializers.ValidationError({"current_password": "Senha atual incorreta."})
+
+        return attrs
+
     def update(self, instance, validated_data):
-        password = validated_data.pop("password", None)
+        validated_data.pop("current_password", None)
+        new_password = validated_data.pop("new_password", None)
 
         for attr, val in validated_data.items():
             setattr(instance, attr, val)
 
-        if password:
-            instance.set_password(password)
+        if new_password:
+            instance.set_password(new_password)
 
         instance.save()
         return instance
