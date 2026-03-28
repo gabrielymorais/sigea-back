@@ -73,6 +73,7 @@ INSTALLED_APPS = [
     "apps.pareceres",
     "apps.oficios",
     "apps.rea",
+    "apps.historico",
 ]
 
 MIDDLEWARE = [

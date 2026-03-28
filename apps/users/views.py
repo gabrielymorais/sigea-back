@@ -11,6 +11,8 @@ from rest_framework.decorators import action
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiResponse, OpenApiExample, OpenApiParameter
 
 from .serializers import UserSerializer, UserCreateSerializer, UserUpdateSerializer
+from apps.historico.utils import registrar_acao
+from apps.historico.models import TipoAcao, Modulo
 
 User = get_user_model()
 
@@ -148,12 +150,31 @@ class UsersViewSet(viewsets.ModelViewSet):
 
         return qs
 
+    def perform_create(self, serializer):
+        user = serializer.save()
+        registrar_acao(
+            usuario=self.request.user,
+            acao=TipoAcao.CRIAR,
+            modulo=Modulo.USUARIOS,
+            descricao=f'Criou o usuário "{user.username}"',
+            objeto_id=user.pk,
+            objeto_nome=user.username,
+        )
+
     def perform_destroy(self, instance):
         if not instance.is_archived:
             instance.is_archived = True
             instance.archived_at = timezone.now()
             instance.is_active = False
             instance.save(update_fields=["is_archived", "archived_at", "is_active"])
+            registrar_acao(
+                usuario=self.request.user,
+                acao=TipoAcao.EXCLUIR,
+                modulo=Modulo.USUARIOS,
+                descricao=f'Arquivou o usuário "{instance.username}"',
+                objeto_id=instance.pk,
+                objeto_nome=instance.username,
+            )
 
     @action(detail=True, methods=["post"], url_path="desarquivar")
     def desarquivar(self, request, pk=None):
@@ -162,4 +183,12 @@ class UsersViewSet(viewsets.ModelViewSet):
         user.archived_at = None
         user.is_active = True
         user.save(update_fields=["is_archived", "archived_at", "is_active"])
+        registrar_acao(
+            usuario=request.user,
+            acao=TipoAcao.EDITAR,
+            modulo=Modulo.USUARIOS,
+            descricao=f'Desarquivou o usuário "{user.username}"',
+            objeto_id=user.pk,
+            objeto_nome=user.username,
+        )
         return Response(UserSerializer(user).data, status=status.HTTP_200_OK)

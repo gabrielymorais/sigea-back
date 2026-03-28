@@ -22,6 +22,8 @@ from drf_spectacular.utils import (
 
 from .models import ReaFolder, ReaFile
 from .serializers import ReaFolderSerializer, ReaFileSerializer
+from apps.historico.utils import registrar_acao
+from apps.historico.models import TipoAcao, Modulo
 
 
 def _safe_filename(name: str) -> str:
@@ -97,7 +99,37 @@ class ReaFolderViewSet(viewsets.ModelViewSet):
         return qs
 
     def perform_create(self, serializer):
-        serializer.save(owner=self.request.user)
+        folder = serializer.save(owner=self.request.user)
+        registrar_acao(
+            usuario=self.request.user,
+            acao=TipoAcao.CRIAR,
+            modulo=Modulo.REA,
+            descricao=f'Criou a pasta "{folder.name}"',
+            objeto_id=folder.pk,
+            objeto_nome=folder.name,
+        )
+
+    def perform_update(self, serializer):
+        folder = serializer.save()
+        registrar_acao(
+            usuario=self.request.user,
+            acao=TipoAcao.EDITAR,
+            modulo=Modulo.REA,
+            descricao=f'Editou a pasta "{folder.name}"',
+            objeto_id=folder.pk,
+            objeto_nome=folder.name,
+        )
+
+    def perform_destroy(self, instance):
+        registrar_acao(
+            usuario=self.request.user,
+            acao=TipoAcao.EXCLUIR,
+            modulo=Modulo.REA,
+            descricao=f'Excluiu a pasta "{instance.name}"',
+            objeto_id=instance.pk,
+            objeto_nome=instance.name,
+        )
+        instance.delete()
 
     @extend_schema(
         summary="Enviar múltiplos arquivos para uma pasta de REA",
@@ -117,6 +149,16 @@ class ReaFolderViewSet(viewsets.ModelViewSet):
         created = []
         for f in files:
             created.append(ReaFile.objects.create(folder=folder, file=f, original_name=f.name))
+
+        nomes = ", ".join(f.name for f in files)
+        registrar_acao(
+            usuario=request.user,
+            acao=TipoAcao.UPLOAD,
+            modulo=Modulo.REA,
+            descricao=f'Fez upload de {len(files)} arquivo(s) na pasta "{folder.name}": {nomes}'[:500],
+            objeto_id=folder.pk,
+            objeto_nome=folder.name,
+        )
 
         serializer = ReaFileSerializer(created, many=True, context={"request": request})
         return Response(serializer.data, status=201)
@@ -142,6 +184,15 @@ class ReaFolderViewSet(viewsets.ModelViewSet):
         buffer.seek(0)
         safe_name = "".join(c for c in folder.name if c.isalnum() or c in (" ", "-", "_")).strip()
         zip_filename = f"{safe_name or 'pasta_rea'}_{folder.id}.zip"
+
+        registrar_acao(
+            usuario=request.user,
+            acao=TipoAcao.DOWNLOAD,
+            modulo=Modulo.REA,
+            descricao=f'Baixou a pasta "{folder.name}" em ZIP',
+            objeto_id=folder.pk,
+            objeto_nome=folder.name,
+        )
 
         resp = HttpResponse(buffer.getvalue(), content_type="application/zip")
         resp["Content-Disposition"] = f'attachment; filename="{zip_filename}"'
@@ -231,6 +282,14 @@ class ReaFileViewSet(viewsets.ModelViewSet):
             return Response({"detail": "Arquivo não encontrado."}, status=404)
 
         filename = obj.original_name or obj.file.name.split("/")[-1]
+        registrar_acao(
+            usuario=request.user,
+            acao=TipoAcao.DOWNLOAD,
+            modulo=Modulo.REA,
+            descricao=f'Baixou o arquivo "{obj.original_name}" da pasta "{obj.folder.name}"',
+            objeto_id=obj.pk,
+            objeto_nome=obj.original_name,
+        )
         return FileResponse(obj.file.open("rb"), as_attachment=True, filename=filename)
 
 
@@ -246,5 +305,13 @@ class ReaFileDeleteViewSet(viewsets.GenericViewSet):
         except ReaFile.DoesNotExist:
             return Response({"detail": "Arquivo não encontrado."}, status=404)
 
+        registrar_acao(
+            usuario=request.user,
+            acao=TipoAcao.EXCLUIR,
+            modulo=Modulo.REA,
+            descricao=f'Excluiu o arquivo "{obj.original_name}" da pasta "{obj.folder.name}"',
+            objeto_id=obj.pk,
+            objeto_nome=obj.original_name,
+        )
         obj.delete()
         return Response(status=204)

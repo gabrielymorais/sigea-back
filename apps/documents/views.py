@@ -12,6 +12,8 @@ from drf_spectacular.utils import extend_schema, extend_schema_view
 
 from .models import Document
 from .serializers import DocumentSerializer
+from apps.historico.utils import registrar_acao
+from apps.historico.models import TipoAcao, Modulo
 
 
 @extend_schema_view(
@@ -35,7 +37,37 @@ class DocumentViewSet(viewsets.ModelViewSet):
         return Document.objects.filter(owner=self.request.user)
 
     def perform_create(self, serializer):
-        serializer.save(owner=self.request.user)
+        doc = serializer.save(owner=self.request.user)
+        registrar_acao(
+            usuario=self.request.user,
+            acao=TipoAcao.UPLOAD,
+            modulo=Modulo.DOCUMENTOS,
+            descricao=f'Enviou o documento "{doc.name}"',
+            objeto_id=doc.pk,
+            objeto_nome=doc.name,
+        )
+
+    def perform_update(self, serializer):
+        doc = serializer.save()
+        registrar_acao(
+            usuario=self.request.user,
+            acao=TipoAcao.EDITAR,
+            modulo=Modulo.DOCUMENTOS,
+            descricao=f'Editou o documento "{doc.name}"',
+            objeto_id=doc.pk,
+            objeto_nome=doc.name,
+        )
+
+    def perform_destroy(self, instance):
+        registrar_acao(
+            usuario=self.request.user,
+            acao=TipoAcao.EXCLUIR,
+            modulo=Modulo.DOCUMENTOS,
+            descricao=f'Excluiu o documento "{instance.name}"',
+            objeto_id=instance.pk,
+            objeto_nome=instance.name,
+        )
+        instance.delete()
 
     @action(detail=True, methods=["get"], url_path="download")
     def download(self, request, pk=None):
@@ -53,6 +85,14 @@ class DocumentViewSet(viewsets.ModelViewSet):
         content_type, _ = mimetypes.guess_type(filename)
         content_type = content_type or "application/octet-stream"
 
+        registrar_acao(
+            usuario=request.user,
+            acao=TipoAcao.DOWNLOAD,
+            modulo=Modulo.DOCUMENTOS,
+            descricao=f'Baixou o documento "{doc.name}"',
+            objeto_id=doc.pk,
+            objeto_nome=doc.name,
+        )
         return FileResponse(
             doc.file,
             as_attachment=True,
