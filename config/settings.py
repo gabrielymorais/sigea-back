@@ -40,6 +40,9 @@ DATABASES = {
     )
 }
 
+# Evita conflito de conexões ao criar/deletar o banco de testes (Neon DB / connection pooling)
+DATABASES["default"]["TEST"] = {"NAME": "test_neondb", "CONN_MAX_AGE": 0}
+
 # Media
 MEDIA_URL = "/media/"
 MEDIA_ROOT = Path(config("MEDIA_ROOT", default=str(BASE_DIR / "media")))

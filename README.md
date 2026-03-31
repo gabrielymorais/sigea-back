@@ -75,3 +75,22 @@ docker compose exec web python manage.py migrate
 docker compose exec web python manage.py createsuperuser
 ```
 
+## Para rodar os testes 
+- Todos os testes
+```bash
+docker compose run --rm web python manage.py test apps
+```
+- Com output detalhado (recomendado)
+```bash
+docker compose run --rm web python manage.py test apps --verbosity=2
+```
+- Módulo específico
+```bash
+docker compose run --rm web python manage.py test apps.users
+docker compose run --rm web python manage.py test apps.atas
+docker compose run --rm web python manage.py test apps.historico
+```
+- Parar no primeiro erro
+```bash
+docker compose run --rm web python manage.py test apps --failfast
+```
